@@ -7,6 +7,7 @@ import {
   Alert,
   ScrollView,
   FlatList,
+  Dimensions,
 } from "react-native";
 import NumberContainer from "../components/NumberContainer";
 import Card from "../components/Card";
@@ -34,7 +35,6 @@ const renderListItem = (listLength, itemData) => (
 
 const GameScreen = (props) => {
   const initialGuess = generateRandomBetween(1, 100, props.userChoice);
-
   const [currentGuess, setCurrentGuess] = useState(initialGuess);
   // these will not be re generated once the component is re mounted
 
@@ -42,7 +42,26 @@ const GameScreen = (props) => {
   const currentHigh = useRef(100);
   const [pastGuesses, setPastGuesses] = useState([initialGuess.toString()]);
 
+  const [deciveWidth, setDeviceWidth] = useState(
+    Dimensions.get("window").width
+  );
+  const [deciveHeight, setDeviceHeight] = useState(
+    Dimensions.get("window").height
+  );
+
   const { userChoice, onGameOver } = props;
+  useEffect(() => {
+    const upadteLayOut = () => {
+      setDeviceWidth(Dimensions.get("window").width);
+      setDeviceHeight(Dimensions.get("window").height);
+    };
+    Dimensions.addEventListener("change", upadteLayOut);
+
+    return () => {
+      Dimensions.removeEventListener("change", upadteLayOut);
+    };
+  });
+
   useEffect(() => {
     if (currentGuess === props.userChoice) {
       props.onGameOver(pastGuesses.length);
@@ -73,6 +92,40 @@ const GameScreen = (props) => {
     // setRounds((curRounds) => curRounds + 1);
     setPastGuesses((curPastGuess) => [nextNumber.toString(), ...curPastGuess]);
   };
+
+  // check dimention
+
+  if (deciveHeight < 500) {
+    return (
+      <View style={styles.screen}>
+        <BodyText>Opponent's guess</BodyText>
+        <View style={styles.controls}>
+          <MainButton onPress={nextGuessHandler.bind(this, "lower")}>
+            <Ionicons name="md-remove" size={24} color="white" />
+          </MainButton>
+          <NumberContainer>{currentGuess}</NumberContainer>
+
+          <MainButton onPress={nextGuessHandler.bind(this, "greater")}>
+            <Ionicons name="md-add" size={24} color="white" />
+          </MainButton>
+        </View>
+        <View style={styles.listContainer}>
+          {/* <ScrollView contentContainerStyle={styles.list}>
+          {pastGuesses.map((guess, index) =>
+            renderListItem(guess, pastGuesses.length - index)
+          )}
+          </ScrollView> */}
+          <FlatList
+            keyExtractor={(item) => item}
+            // should be sting not a number
+            data={pastGuesses}
+            renderItem={renderListItem.bind(this, pastGuesses.length)}
+            contentContainerStyle={styles.list}
+          />
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.screen}>
@@ -113,9 +166,15 @@ const styles = StyleSheet.create({
   buttonContainer: {
     flexDirection: "row",
     justifyContent: "space-around",
-    marginTop: 20,
+    marginTop: Dimensions.get("window").height > 600 ? 10 : 20,
     width: 400,
     maxWidth: "90%",
+  },
+  controls: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    width: "80%",
+    alignItems: "center",
   },
   listContainer: {
     flex: 1,
